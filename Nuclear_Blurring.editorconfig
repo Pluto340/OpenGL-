@@ -1,0 +1,62 @@
+#shader vertex
+#version 330 core
+layout(location=0)in vec3 position;
+layout(location=1)in vec2 TexCoord;
+layout(std140)uniform ExampleBlock
+{
+    mat4 projection;
+    mat4 view;
+};
+
+out vec2 v_TexCoord;
+uniform mat4 model;
+
+
+void main()
+{
+    gl_Position=projection*view*model*vec4(position,1.0);
+    v_TexCoord=TexCoord;
+}
+
+#shader fragment
+#version 330 core
+
+out vec4 FragColor;
+in vec2 v_TexCoord;
+uniform sampler2D screenTexture;
+
+const float offset=1.0/300.0;//采样周围的所有像素，锐化每个颜色值
+
+void main()
+{
+    vec2 offsets[9]=vec2[](
+        vec2(-offset,  offset), // 左上
+        vec2( 0.0f,    offset), // 正上
+        vec2( offset,  offset), // 右上
+        vec2(-offset,  0.0f),   // 左
+        vec2( 0.0f,    0.0f),   // 中
+        vec2( offset,  0.0f),   // 右
+        vec2(-offset, -offset), // 左下
+        vec2( 0.0f,   -offset), // 正下
+        vec2( offset, -offset)  // 右下
+    );
+
+    //模糊
+    float kernel[9]=float[](
+        1.0 / 16, 2.0 / 16, 1.0 / 16,
+        2.0 / 16, 4.0 / 16, 2.0 / 16,
+        1.0 / 16, 2.0 / 16, 1.0 / 16  
+    );
+
+    vec3 sampleTex[9];
+    for(int i=0;i!=9;i++)
+        sampleTex[i]=texture(screenTexture,v_TexCoord.st+offsets[i]).rgb;
+         //TexCoord.st表示的是这个纹理坐标有两个分量s和t，表示垂直方向和水平方向，通过相加offset[i]来实现从纹理的不同位置采样颜色
+
+    vec3 col=vec3(0.0);
+    for(int i=0;i!=9;i++)
+    {
+        col+=sampleTex[i]*kernel[i];
+    }
+    FragColor=vec4(col,1.0);
+}

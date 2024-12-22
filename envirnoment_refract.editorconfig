@@ -1,0 +1,36 @@
+#shader vertex
+#version 330 core
+layout(location=0)in vec3 position;
+layout(location=1)in vec3 Normal;
+
+out vec3 FragPos;
+out vec3 normal;
+
+uniform mat4 model;
+layout(std140)uniform ExampleBlock
+{
+    mat4 projection;
+    mat4 view;
+};
+
+void main()
+{
+    FragPos=vec3(model*vec4(position,1.0));
+    normal=mat3(transpose(inverse(model)))*Normal;
+    gl_Position=projection*view*model*vec4(position,1.0);
+}
+
+#shader fragment
+#version 330 core
+out vec4 FragColor;
+in vec3 FragPos;
+in vec3 normal;
+uniform samplerCube skybox;
+uniform vec3 cameraPos;
+void main()
+{
+    float ratio=1.00/1.52;//’€…‰¬ 
+    vec3 I=normalize(FragPos-cameraPos);
+    vec3 R=refract(I,normalize(normal),ratio);
+    FragColor=vec4(texture(skybox,R).rgb,1.0);
+}
